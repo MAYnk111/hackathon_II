@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Camera, Utensils, ShieldCheck, ChevronDown } from "lucide-react";
+import { Camera, Utensils, ShieldCheck, ChevronDown, Sparkles, Bell } from "lucide-react";
 import medicineScan from "@/assets/medicine-scan.png";
+import VedicGuidance from "./VedicGuidance";
+import MedicineReminders from "./MedicineReminders";
 
 const features = [
   {
@@ -9,12 +11,30 @@ const features = [
     title: "Fake vs Real Medicine Check",
     description: "Upload an image of your medicine strip and our platform cross-references it against verified databases to flag potential counterfeits.",
     color: "bg-warm text-warm-foreground",
+    type: "text",
   },
   {
     icon: Utensils,
     title: "Food–Medicine Compatibility",
     description: "Check if your daily foods interact with your current medications. Some common foods can reduce drug effectiveness or cause adverse reactions.",
     color: "bg-accent text-accent-foreground",
+    type: "text",
+  },
+  {
+    icon: Sparkles,
+    title: "Vedic Health Guidance",
+    description: "Ancient wisdom for modern wellness — explore timeless principles of balance and vitality.",
+    color: "bg-sage/30 text-sage-foreground",
+    type: "component",
+    component: VedicGuidance,
+  },
+  {
+    icon: Bell,
+    title: "Medicine Reminders",
+    description: "Set personalized medication reminders with browser notifications to never miss a dose.",
+    color: "bg-primary/10 text-primary",
+    type: "component",
+    component: MedicineReminders,
   },
 ];
 
@@ -104,16 +124,21 @@ const MedicineSafetySection = () => {
                       className={`w-5 h-5 text-muted-foreground transition-transform duration-300 ${expanded === i ? "rotate-180" : ""}`}
                     />
                   </div>
-                  <motion.div
-                    initial={false}
-                    animate={{ height: expanded === i ? "auto" : 0, opacity: expanded === i ? 1 : 0 }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="overflow-hidden"
-                  >
-                    <p className="text-muted-foreground text-sm mt-3 pl-16 leading-relaxed">
-                      {feature.description}
-                    </p>
-                  </motion.div>
+                  
+                  {feature.type === "text" ? (
+                    <motion.div
+                      initial={false}
+                      animate={{ height: expanded === i ? "auto" : 0, opacity: expanded === i ? 1 : 0 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      className="overflow-hidden"
+                    >
+                      <p className="text-muted-foreground text-sm mt-3 pl-16 leading-relaxed">
+                        {feature.description}
+                      </p>
+                    </motion.div>
+                  ) : feature.component ? (
+                    <feature.component isExpanded={expanded === i} />
+                  ) : null}
                 </motion.div>
               ))}
             </div>
