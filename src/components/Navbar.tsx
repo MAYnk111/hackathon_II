@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shield, Menu, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const links = [
     { label: "Medicine Safety", href: "#medicine" },
@@ -20,12 +25,12 @@ const Navbar = () => {
       className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50"
     >
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-        <a href="#" className="flex items-center gap-2">
+        <Link to={user ? "/dashboard" : "/login"} className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
             <Shield className="w-5 h-5 text-primary-foreground" />
           </div>
           <span className="font-heading font-bold text-xl text-foreground">SafeCare</span>
-        </a>
+        </Link>
 
         {/* Desktop */}
         <div className="hidden md:flex items-center gap-8">
@@ -44,6 +49,18 @@ const Navbar = () => {
           >
             SOS
           </a>
+          {user ? (
+            <Button variant="ghost" onClick={async () => {
+              await logout();
+              navigate("/login");
+            }}>
+              Log out
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link to="/login">Log in</Link>
+            </Button>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -83,6 +100,18 @@ const Navbar = () => {
               >
                 SOS Emergency
               </a>
+              {user ? (
+                <Button variant="ghost" onClick={async () => {
+                  await logout();
+                  navigate("/login");
+                }}>
+                  Log out
+                </Button>
+              ) : (
+                <Button asChild onClick={() => setIsOpen(false)}>
+                  <Link to="/login">Log in</Link>
+                </Button>
+              )}
             </div>
           </motion.div>
         )}
