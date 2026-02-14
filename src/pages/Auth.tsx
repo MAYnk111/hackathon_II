@@ -45,12 +45,12 @@ const Auth = () => {
       <Card className="w-full max-w-lg border-border/60 shadow-xl">
         <CardHeader className="space-y-2">
           <CardTitle className="text-2xl">
-            {mode === "login" ? "Welcome Back" : "Join SafeCare"}
+            {mode === "login" ? "Welcome Back" : "Join SUDHA"}
           </CardTitle>
           <CardDescription>
             {mode === "login" 
               ? "Sign in to access medicine authenticity scanning and health insights." 
-              : "Create your account to begin protecting your health."}
+              : "Create your account to begin your journey with pure healthcare wisdom."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

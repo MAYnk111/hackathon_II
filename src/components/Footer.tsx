@@ -1,19 +1,22 @@
-import { Shield } from "lucide-react";
-
 const Footer = () => {
   return (
     <footer className="bg-foreground py-12">
       <div className="container mx-auto px-6">
         <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-8">
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Shield className="w-4 h-4 text-primary-foreground" />
+            <div className="flex items-center gap-3 mb-3">
+              <img 
+                src="/sudha-logo.png"
+                alt="SUDHA Healthcare Logo"
+                className="h-8 w-auto object-contain drop-shadow-sm"
+              />
+              <div className="flex flex-col -space-y-1">
+                <span className="font-heading font-bold text-lg text-background">SUDHA</span>
+                <span className="text-xs text-background/60">सुधा</span>
               </div>
-              <span className="font-heading font-bold text-lg text-background">SafeCare</span>
             </div>
             <p className="text-background/60 text-sm max-w-xs leading-relaxed">
-              A healthcare safety platform for medicine awareness and responsible symptom understanding.
+              Pure nectar of healthcare wisdom. A platform for medicine safety, Ayurvedic awareness, and responsible health decisions.
             </p>
           </div>
           <div className="flex gap-12">

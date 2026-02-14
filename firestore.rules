@@ -7,5 +7,42 @@ service cloud.firestore {
     match /users/{userId}/reminders/{reminderId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+    
+    // User settings (dark mode, language, font size)
+    match /users/{userId}/settings/{settingId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Family members
+    match /users/{userId}/members/{memberId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Member reminders
+    match /reminders/{reminderId} {
+      // Allow authenticated users to create and read their own reminders
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // SOS events for family members
+    match /sos_events/{eventId} {
+      // Allow authenticated users to create SOS events
+      allow create: if request.auth != null;
+      // Allow users to read SOS events where they are the owner
+      allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
+      // Allow users to update/delete their own SOS events
+      allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+    }
+    
+    // Emergency SOS collection (original)
+    match /emergencies/{emergencyId} {
+      // Allow authenticated users to create emergency entries
+      allow create: if request.auth != null;
+      
+      // Allow users to read their own emergency entries
+      allow read: if request.auth != null && 
+                     request.auth.uid == resource.data.userId;
+    }
   }
 }

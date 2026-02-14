@@ -1,0 +1,131 @@
+{
+  "translation": {
+    "navbar": {
+      "medicineSafety": "Medicine Safety",
+      "symptomAwareness": "Symptom Awareness",
+      "nutrition": "Nutrition",
+      "trustEthics": "Trust & Ethics",
+      "sos": "SOS",
+      "profile": "Profile",
+      "login": "Log in",
+      "logout": "Log out"
+    },
+    "profile": {
+      "title": "Profile Settings",
+      "appearance": {
+        "title": "Appearance",
+        "description": "Customize your visual experience",
+        "darkMode": "Dark Mode",
+        "darkModeDescription": "Enable dark theme",
+        "fontSize": "Font Size",
+        "fontSizeSmall": "Small",
+        "fontSizeMedium": "Medium",
+        "fontSizeLarge": "Large"
+      },
+      "language": {
+        "title": "Language",
+        "description": "Choose your preferred language",
+        "selectLanguage": "Select Language",
+        "english": "English",
+        "hindi": "हिन्दी (Hindi)"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Manage notification preferences",
+        "browserNotifications": "Browser Notifications",
+        "status": "Status",
+        "granted": "Enabled",
+        "denied": "Blocked",
+        "default": "Not Set",
+        "enable": "Enable Notifications"
+      },
+      "members": {
+        "title": "Family Members",
+        "description": "Manage your family members (up to 4)",
+        "addMember": "Add Member",
+        "name": "Name",
+        "age": "Age",
+        "relation": "Relation",
+        "self": "Self",
+        "spouse": "Spouse",
+        "parent": "Parent",
+        "child": "Child",
+        "sibling": "Sibling",
+        "other": "Other",
+        "save": "Add Member",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "yearsOld": "years old",
+        "maxReached": "Maximum Members Reached",
+        "maxReachedDesc": "You can only add up to 4 members.",
+        "missingInfo": "Missing Information",
+        "missingInfoDesc": "Please fill in all member details.",
+        "duplicate": "Duplicate Member",
+        "duplicateDesc": "A member with this name already exists.",
+        "added": "Member Added",
+        "addedDesc": "has been added successfully.",
+        "removed": "Member Removed",
+        "removedDesc": "has been removed.",
+        "error": "Error",
+        "errorDesc": "Failed to update member. Please try again."
+      },
+      "reminders": {
+        "title": "Member Reminders",
+        "description": "Set reminders for family members",
+        "addReminder": "Add Reminder",
+        "selectMember": "Select Member",
+        "message": "Reminder Message",
+        "dateTime": "Date & Time",
+        "setReminder": "Set Reminder",
+        "cancel": "Cancel",
+        "pending": "Pending Reminders",
+        "for": "for",
+        "at": "at",
+        "complete": "Complete",
+        "delete": "Delete",
+        "missingInfo": "Missing Information",
+        "missingInfoDesc": "Please select a member, enter a message, and set a time.",
+        "invalidTime": "Invalid Time",
+        "invalidTimeDesc": "Reminder time must be in the future.",
+        "set": "Reminder Set",
+        "setDesc": "Reminder has been set.",
+        "completed": "Reminder Completed",
+        "completedDesc": "Reminder marked as complete.",
+        "deleted": "Reminder Deleted",
+        "deletedDesc": "Reminder has been removed."
+      },
+      "sos": {
+        "title": "Emergency Alerts",
+        "description": "Recent SOS alerts from family members",
+        "viewLocation": "View Location",
+        "noAlerts": "No emergency alerts"
+      },
+      "account": {
+        "title": "Account",
+        "logout": "Log Out",
+        "logoutDesc": "Sign out of your account"
+      }
+    },
+    "hero": {
+      "welcome": "Safer Medicines. Clearer Decisions.",
+      "tagline": "Your AI-powered companion for medicine safety, nutrition guidance, and trusted health decisions.",
+      "getStarted": "Get Started",
+      "learnMore": "Learn More"
+    },
+    "footer": {
+      "tagline": "Empowering families with trusted, AI-driven health guidance.",
+      "quickLinks": "Quick Links",
+      "home": "Home",
+      "medicineSafety": "Medicine Safety",
+      "symptoms": "Symptoms",
+      "nutrition": "Nutrition",
+      "sos": "Emergency SOS",
+      "trustEthics": "Trust & Ethics",
+      "legal": "Legal",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "contact": "Contact",
+      "copyright": "© 2026 SUDHA. All rights reserved."
+    }
+  }
+}

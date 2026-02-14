@@ -1,8 +1,10 @@
 /**
- * Sanskritic Terms Used in Arogya Platform
+ * Sanskritic Terms Used in SUDHA Platform
  * 
- * This guide explains the Sanskrit terms integrated throughout SafeCare
+ * This guide explains the Sanskrit terms integrated throughout SUDHA (सुधा)
  * to provide cultural and Vedic context while maintaining medical responsibility.
+ * 
+ * SUDHA means "pure nectar" - representing purity, healing, and trust in healthcare.
  */
 
 export const vedic_terminology = {

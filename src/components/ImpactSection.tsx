@@ -2,10 +2,26 @@ import { motion } from "framer-motion";
 import { ShieldCheck, HeartHandshake, Hospital, Globe } from "lucide-react";
 
 const impacts = [
-  { icon: ShieldCheck, title: "Reduces Fake Medicine Harm", desc: "Helping users identify counterfeit medicines before consumption." },
-  { icon: HeartHandshake, title: "Prevents Unsafe Interactions", desc: "Flagging dangerous food–drug combinations for everyday awareness." },
-  { icon: Hospital, title: "Reduces Panic Visits", desc: "Calm, informational guidance that reduces unnecessary hospital visits." },
-  { icon: Globe, title: "Supports Public Health", desc: "Contributing to stronger healthcare awareness across communities." },
+  { 
+    icon: ShieldCheck, 
+    title: "Nakli Aushadhi Suraksha (नकली औषधि सुरक्षा)", 
+    desc: "Protecting users from counterfeit medicines by helping identify fake drugs before consumption." 
+  },
+  { 
+    icon: HeartHandshake, 
+    title: "Aahar–Aushadhi Samvedana (आहार–औषधि संवेदन)", 
+    desc: "Building awareness of food–drug interactions to prevent unsafe combinations in daily life." 
+  },
+  { 
+    icon: Hospital, 
+    title: "Shanti & Spashtata (शांति और स्पष्टता)", 
+    desc: "Reducing panic through calm, clear, informational guidance that prevents unnecessary hospital visits." 
+  },
+  { 
+    icon: Globe, 
+    title: "Jan Arogya Seva (जन आरोग्य सेवा)", 
+    desc: "Serving public health by strengthening healthcare awareness and responsibility across communities." 
+  },
 ];
 
 const ImpactSection = () => {
@@ -19,7 +35,7 @@ const ImpactSection = () => {
             viewport={{ once: true }}
             className="inline-block bg-primary/10 text-primary text-sm font-semibold px-4 py-1.5 rounded-full mb-4"
           >
-            🌍 Our Impact
+            � Arogya Seva
           </motion.span>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
@@ -28,8 +44,18 @@ const ImpactSection = () => {
             transition={{ duration: 0.6 }}
             className="font-heading text-3xl md:text-4xl font-extrabold text-foreground mb-4"
           >
-            Making Healthcare Safer for Everyone
+            Jan Arogya Prabhav: Our Public Health Impact
+            <span className="block text-2xl md:text-3xl mt-2 text-primary/80">जन आरोग्य प्रभाव</span>
           </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1, duration: 0.6 }}
+            className="text-muted-foreground leading-relaxed max-w-xl mx-auto"
+          >
+            Through <span className="font-semibold text-foreground">Seva</span> (service) to society, we aim to make healthcare safer, more informed, and accessible for every Indian family.
+          </motion.p>
         </div>
 
         <div className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">

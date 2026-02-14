@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,10 +11,10 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const links = [
-    { label: "Medicine Safety", href: "#medicine" },
-    { label: "Symptom Awareness", href: "#symptoms" },
-    { label: "Nutrition", href: "#nutrition" },
-    { label: "Trust & Ethics", href: "#trust" },
+    { label: "Medicine Safety", path: "/medicine-safety" },
+    { label: "Symptom Awareness", path: "/symptom-awareness" },
+    { label: "Nutrition", path: "/nutrition" },
+    { label: "Trust & Ethics", path: "/trust-ethics" },
   ];
 
   return (
@@ -25,37 +25,50 @@ const Navbar = () => {
       className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50"
     >
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-        <Link to={user ? "/dashboard" : "/login"} className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-            <Shield className="w-5 h-5 text-primary-foreground" />
+        <Link to={user ? "/dashboard" : "/login"} className="flex items-center gap-3">
+          <img 
+            src="/sudha-logo.png"
+            alt="SUDHA Healthcare Logo"
+            className="h-8 sm:h-10 w-auto object-contain drop-shadow-sm"
+          />
+          <div className="hidden sm:flex flex-col -space-y-1">
+            <span className="font-heading font-bold text-xl text-foreground tracking-tight">SUDHA</span>
+            <span className="text-xs text-primary/70 font-medium">सुधा</span>
           </div>
-          <span className="font-heading font-bold text-xl text-foreground">SafeCare</span>
         </Link>
 
         {/* Desktop */}
         <div className="hidden md:flex items-center gap-8">
           {links.map((link) => (
-            <a
+            <button
               key={link.label}
-              href={link.href}
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-300"
+              onClick={() => navigate(link.path)}
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-300 cursor-pointer"
             >
               {link.label}
-            </a>
+            </button>
           ))}
-          <a
-            href="#sos"
-            className="text-sm font-semibold bg-sos text-sos-foreground px-4 py-2 rounded-xl hover:opacity-90 transition-opacity duration-300"
+          <button
+            onClick={() => navigate("/dashboard#sos")}
+            className="text-sm font-semibold bg-sos text-sos-foreground px-4 py-2 rounded-xl hover:opacity-90 transition-opacity duration-300 cursor-pointer"
           >
             SOS
-          </a>
+          </button>
           {user ? (
-            <Button variant="ghost" onClick={async () => {
-              await logout();
-              navigate("/login");
-            }}>
-              Log out
-            </Button>
+            <>
+              <Button variant="ghost" asChild>
+                <Link to="/profile">Profile</Link>
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  await logout();
+                  navigate("/login");
+                }}
+              >
+                Log out
+              </Button>
+            </>
           ) : (
             <Button asChild>
               <Link to="/login">Log in</Link>
@@ -84,29 +97,42 @@ const Navbar = () => {
           >
             <div className="px-6 py-4 flex flex-col gap-4">
               {links.map((link) => (
-                <a
+                <button
                   key={link.label}
-                  href={link.href}
-                  onClick={() => setIsOpen(false)}
-                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                  onClick={() => {
+                    navigate(link.path);
+                    setIsOpen(false);
+                  }}
+                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors text-left"
                 >
                   {link.label}
-                </a>
+                </button>
               ))}
-              <a
-                href="#sos"
-                onClick={() => setIsOpen(false)}
+              <button
+                onClick={() => {
+                  navigate("/dashboard#sos");
+                  setIsOpen(false);
+                }}
                 className="text-sm font-semibold bg-sos text-sos-foreground px-4 py-2 rounded-xl text-center"
               >
                 SOS Emergency
-              </a>
+              </button>
               {user ? (
-                <Button variant="ghost" onClick={async () => {
-                  await logout();
-                  navigate("/login");
-                }}>
-                  Log out
-                </Button>
+                <>
+                  <Button variant="ghost" asChild onClick={() => setIsOpen(false)}>
+                    <Link to="/profile">Profile</Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={async () => {
+                      await logout();
+                      navigate("/login");
+                      setIsOpen(false);
+                    }}
+                  >
+                    Log out
+                  </Button>
+                </>
               ) : (
                 <Button asChild onClick={() => setIsOpen(false)}>
                   <Link to="/login">Log in</Link>

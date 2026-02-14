@@ -4,6 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --base-font-size: 16px;
+}
+
 @layer base {
   :root {
     --background: 40 33% 97%;
@@ -108,6 +112,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    font-size: var(--base-font-size, 16px);
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);

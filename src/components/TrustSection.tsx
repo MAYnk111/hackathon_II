@@ -2,12 +2,36 @@ import { motion } from "framer-motion";
 import { ShieldOff, Pill, UserX, Lock, BarChart3, Heart } from "lucide-react";
 
 const principles = [
-  { icon: ShieldOff, title: "Not a Diagnostic Tool", desc: "We never diagnose conditions — only share possibilities." },
-  { icon: Pill, title: "No Prescriptions", desc: "We never recommend or prescribe any medications." },
-  { icon: UserX, title: "No Doctor Replacement", desc: "Always consult qualified healthcare professionals." },
-  { icon: Lock, title: "Privacy & Consent-First", desc: "Your data stays private. No information is shared." },
-  { icon: BarChart3, title: "Confidence & Uncertainty", desc: "We show probability levels so you understand our limits." },
-  { icon: Heart, title: "Built with Care", desc: "Designed to reduce panic, not create it." },
+  { 
+    icon: ShieldOff, 
+    title: "Maryada: No Diagnosis (मर्यादा)", 
+    desc: "We respect professional boundaries — we never diagnose conditions, only share possibilities." 
+  },
+  { 
+    icon: Pill, 
+    title: "Ahimsa: No Prescriptions (अहिंसा)", 
+    desc: "To do no harm, we never recommend or prescribe any medications." 
+  },
+  { 
+    icon: UserX, 
+    title: "Vaidya Samman: Doctor First (वैद्य सम्मान)", 
+    desc: "We honor healthcare professionals. Always consult qualified doctors for medical decisions." 
+  },
+  { 
+    icon: Lock, 
+    title: "Gopniyata: Privacy First (गोपनीयता)", 
+    desc: "Your personal health data stays completely private. No information is shared without consent." 
+  },
+  { 
+    icon: BarChart3, 
+    title: "Satya: Truth in Limits (सत्य)", 
+    desc: "We show confidence levels truthfully so you understand what we know and what we don't." 
+  },
+  { 
+    icon: Heart, 
+    title: "Karuna: Built with Care (करुणा)", 
+    desc: "Designed with compassion to reduce panic, provide clarity, and support well-being." 
+  },
 ];
 
 const TrustSection = () => {
@@ -21,7 +45,7 @@ const TrustSection = () => {
             viewport={{ once: true }}
             className="inline-block bg-sage/30 text-sage-foreground text-sm font-semibold px-4 py-1.5 rounded-full mb-4"
           >
-            🧠 Ethics & Safety
+            🛡️ Dharma • Suraksha • Vishwas
           </motion.span>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
@@ -30,7 +54,8 @@ const TrustSection = () => {
             transition={{ duration: 0.6 }}
             className="font-heading text-3xl md:text-4xl font-extrabold text-foreground mb-4"
           >
-            Trust, Safety & Ethics
+            Arogya Dharma: Ethics, Safety & Trust
+            <span className="block text-2xl md:text-3xl mt-2 text-primary/80">आरोग्य धर्म</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 15 }}
@@ -39,7 +64,7 @@ const TrustSection = () => {
             transition={{ delay: 0.1, duration: 0.6 }}
             className="text-muted-foreground leading-relaxed"
           >
-            We believe healthcare technology should be transparent about what it can and cannot do.
+            Rooted in the principle of <span className="font-semibold text-foreground">Dharma</span> (ethical duty), we believe healthcare technology must be transparent, safe, and respectful of its limits.
           </motion.p>
         </div>
 
