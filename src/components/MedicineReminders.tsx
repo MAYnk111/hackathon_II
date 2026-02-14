@@ -190,6 +190,7 @@ const MedicineReminders = ({ isExpanded }: { isExpanded: boolean }) => {
       animate={{ height: isExpanded ? "auto" : 0, opacity: isExpanded ? 1 : 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
       className="overflow-hidden"
+      onClick={(e) => e.stopPropagation()}
     >
       <div className="mt-4 pl-16 pr-4">
         <div className="bg-background rounded-2xl p-6 border border-border space-y-6">

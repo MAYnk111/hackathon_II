@@ -110,10 +110,12 @@ const MedicineSafetySection = () => {
                   initial="hidden"
                   whileInView="visible"
                   viewport={{ once: true }}
-                  className="rounded-2xl border border-border bg-background p-5 cursor-pointer hover:shadow-md transition-shadow duration-300"
-                  onClick={() => setExpanded(expanded === i ? null : i)}
+                  className="rounded-2xl border border-border bg-background p-5 hover:shadow-md transition-shadow duration-300"
                 >
-                  <div className="flex items-center gap-4">
+                  <div 
+                    className="flex items-center gap-4 cursor-pointer"
+                    onClick={() => setExpanded(expanded === i ? null : i)}
+                  >
                     <div className={`w-12 h-12 rounded-xl ${feature.color} flex items-center justify-center shrink-0`}>
                       <feature.icon className="w-6 h-6" />
                     </div>
