@@ -4,6 +4,7 @@ import { Search, Activity, AlertCircle, Info, Loader, ChevronDown, ChevronUp } f
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "@/contexts/SettingsContext";
 import { translations } from "@/translations";
+import { API_ENDPOINTS } from "@/config/apiConfig";
 
 interface Condition {
   name: string;
@@ -166,7 +167,7 @@ Do NOT include long explanations.
 Do NOT include markdown.
 Keep it concise.`;
 
-      const response = await fetch("http://localhost:5000/chat", {
+      const response = await fetch(API_ENDPOINTS.CHAT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -192,7 +193,7 @@ Keep it concise.`;
       if (err instanceof Error) {
         if (err.message.includes("fetch")) {
           setError(
-            "Cannot connect to backend. Make sure the server is running on http://localhost:5000"
+            "Cannot connect to backend. Please ensure the server is running."
           );
         } else {
           setError(err.message || "Unable to analyze symptoms. Please try again.");

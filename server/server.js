@@ -1,3 +1,7 @@
+// ============================================================================
+// Production-ready configuration for Render deployment
+// ============================================================================
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -5,21 +9,32 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { pipeline } from '@xenova/transformers';
 import multer from 'multer';
 
+// Load environment variables first
 dotenv.config();
 
+// Initialize Gemini with API key from environment
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// Middleware - CORS configured for production
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
-// Configure multer for memory storage
+// Configure multer for memory storage - production safe limits
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit for production
 });
 
 // ============================================================================
@@ -556,7 +571,7 @@ async function startServer() {
     console.log(`\n${'='.repeat(60)}`);
     console.log(`🏥 HYBRID SYMPTOM TRIAGE API v2.0`);
     console.log(`${'='.repeat(60)}`);
-    console.log(`🌍 Running on http://localhost:${PORT}`);
+    console.log(`🌍 Server running on port ${PORT}`);
     console.log(`📋 Model Status: ${classifierReady ? '✅ Ready' : '❌ Loading...'}`);
     console.log(`\n🔧 Triage Features:`);
     console.log(`   • Rule-based RED flag detection (${RED_FLAG_KEYWORDS.length} keywords)`);

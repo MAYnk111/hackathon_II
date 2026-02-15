@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useSettings } from '@/contexts/SettingsContext';
 import { translations } from '@/translations';
+import { API_ENDPOINTS } from '@/config/apiConfig';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -78,7 +79,7 @@ export function Chatbot() {
     setShowQuickActions(null);
 
     try {
-      const response = await fetch('http://localhost:5000/chat', {
+      const response = await fetch(API_ENDPOINTS.CHAT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -5,6 +5,7 @@ import { Camera, Utensils, ShieldCheck, ChevronDown, Sparkles, Bell, Upload, X, 
 import medicineScan from "@/assets/medicine-scan.png";
 import VedicGuidance from "./VedicGuidance";
 import MedicineReminders from "./MedicineReminders";
+import { API_ENDPOINTS } from "@/config/apiConfig";
 
 const features = [
   {
@@ -87,7 +88,7 @@ const MedicineSafetySection = () => {
     formData.append('image', selectedImage);
 
     try {
-      const response = await fetch('http://localhost:5000/verify-medicine', {
+      const response = await fetch(API_ENDPOINTS.VERIFY_MEDICINE, {
         method: 'POST',
         body: formData,
       });
