@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Search, Activity, AlertCircle, Info, Loader } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface Condition {
   condition: string;
-  confidence: number;
+  confidence?: number;
+}
+
+interface TriageSections {
+  urgencyAdvice: string[];
+  homeCareAdvice: string[];
+  seekHelpAdvice: string[];
 }
 
 const SymptomSection = () => {
@@ -16,6 +23,12 @@ const SymptomSection = () => {
   const [riskLevel, setRiskLevel] = useState<"Red" | "Yellow" | "Green" | null>(null);
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [analysisMessage, setAnalysisMessage] = useState("");
+  const [triageSections, setTriageSections] = useState<TriageSections>({
+    urgencyAdvice: [],
+    homeCareAdvice: [],
+    seekHelpAdvice: [],
+  });
+  const navigate = useNavigate();
 
   const getRiskColor = (level: string | null) => {
     switch (level) {
@@ -30,10 +43,93 @@ const SymptomSection = () => {
     }
   };
 
-  const getConditionColor = (confidence: number) => {
+  const getConditionColor = (confidence?: number) => {
+    if (confidence == null) return "bg-muted";
     if (confidence >= 70) return "bg-destructive/20";
     if (confidence >= 40) return "bg-yellow-500/20";
     return "bg-sage/20";
+  };
+
+  const parseRiskLevel = (value: string) => {
+    const normalized = value.toLowerCase();
+    if (normalized.includes("red")) return "Red" as const;
+    if (normalized.includes("yellow")) return "Yellow" as const;
+    if (normalized.includes("green")) return "Green" as const;
+    return null;
+  };
+
+  const parseTriageReply = (replyText: string) => {
+    const lines = replyText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    let detectedRisk: "Red" | "Yellow" | "Green" | null = null;
+    const detectedConditions: Condition[] = [];
+    const sections: TriageSections = {
+      urgencyAdvice: [],
+      homeCareAdvice: [],
+      seekHelpAdvice: [],
+    };
+
+    let activeSection: "conditions" | "urgency" | "home" | "seek" | null = null;
+
+    lines.forEach((line) => {
+      if (/^risk level:/i.test(line)) {
+        const value = line.split(":")[1] || "";
+        detectedRisk = parseRiskLevel(value);
+        activeSection = null;
+        return;
+      }
+
+      if (/^possible conditions:/i.test(line)) {
+        activeSection = "conditions";
+        return;
+      }
+
+      if (/^urgency advice:/i.test(line)) {
+        activeSection = "urgency";
+        return;
+      }
+
+      if (/^home care advice:/i.test(line)) {
+        activeSection = "home";
+        return;
+      }
+
+      if (/^when to seek medical help:/i.test(line)) {
+        activeSection = "seek";
+        return;
+      }
+
+      if (/^[-•]/.test(line)) {
+        const content = line.replace(/^[-•]\s*/, "").trim();
+        if (!content) return;
+        if (activeSection === "conditions") {
+          detectedConditions.push({ condition: content });
+        } else if (activeSection === "urgency") {
+          sections.urgencyAdvice.push(content);
+        } else if (activeSection === "home") {
+          sections.homeCareAdvice.push(content);
+        } else if (activeSection === "seek") {
+          sections.seekHelpAdvice.push(content);
+        }
+        return;
+      }
+
+      if (!detectedRisk) {
+        const inlineRisk = parseRiskLevel(line);
+        if (inlineRisk) {
+          detectedRisk = inlineRisk;
+        }
+      }
+    });
+
+    return {
+      detectedRisk,
+      detectedConditions,
+      sections,
+    };
   };
 
   const analyzeSymptoms = async () => {
@@ -56,6 +152,7 @@ const SymptomSection = () => {
     setRiskLevel(null);
     setConditions([]);
     setAnalysisMessage("");
+    setTriageSections({ urgencyAdvice: [], homeCareAdvice: [], seekHelpAdvice: [] });
 
     try {
       console.log("📋 Sending request to backend...");
@@ -63,15 +160,33 @@ const SymptomSection = () => {
       console.log("   Age:", userAge);
       console.log("   Gender:", userGender);
 
-      const response = await fetch("http://localhost:5000/analyze-symptoms", {
+      const triagePrompt = `You are a healthcare triage assistant.
+Provide informational guidance only.
+Do not diagnose.
+
+Analyze the symptoms below and respond in this format:
+
+Risk Level: (Green / Yellow / Red)
+Possible Conditions:
+- ...
+- ...
+Urgency Advice:
+- ...
+Home Care Advice:
+- ...
+When to Seek Medical Help:
+- ...
+
+Symptoms:
+${userSymptoms}`;
+
+      const response = await fetch("http://localhost:5000/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          symptoms: userSymptoms,
-          age: parseInt(userAge),
-          gender: userGender,
+          message: triagePrompt,
         }),
       });
 
@@ -83,9 +198,13 @@ const SymptomSection = () => {
       const data = await response.json();
       console.log("✅ Backend response:", data);
 
-      setRiskLevel(data.riskLevel);
-      setConditions(data.topConditions);
-      setAnalysisMessage(data.message);
+      const replyText = typeof data.reply === "string" ? data.reply : "";
+      const parsed = parseTriageReply(replyText);
+
+      setRiskLevel(parsed.detectedRisk);
+      setConditions(parsed.detectedConditions);
+      setTriageSections(parsed.sections);
+      setAnalysisMessage(replyText);
     } catch (err) {
       console.error("❌ Error:", err);
       if (err instanceof Error) {
@@ -245,7 +364,7 @@ const SymptomSection = () => {
                 <h3 className="font-heading font-bold text-foreground">Analysis Results</h3>
               </div>
 
-              {!riskLevel && !loading && (
+              {!analysisMessage && !loading && (
                 <div className="text-center py-8">
                   <Activity className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
                   <p className="text-sm text-muted-foreground">
@@ -261,26 +380,77 @@ const SymptomSection = () => {
                 </div>
               )}
 
-              {riskLevel && (
+              {analysisMessage && (
                 <div className="space-y-6">
                   {/* Risk Level Badge */}
-                  <div className="flex items-center gap-3 mb-6">
-                    <div
-                      className={`px-4 py-2 rounded-full font-bold text-sm ${getRiskColor(
-                        riskLevel
-                      )}`}
-                    >
-                      Risk Level: {riskLevel}
+                  {riskLevel && (
+                    <div className="flex items-center gap-3 mb-6">
+                      <div
+                        className={`px-4 py-2 rounded-full font-bold text-sm ${getRiskColor(
+                          riskLevel
+                        )}`}
+                      >
+                        Risk Level: {riskLevel}
+                      </div>
+                      <AlertCircle className="w-5 h-5 text-orange-500" />
                     </div>
-                    <AlertCircle className="w-5 h-5 text-orange-500" />
-                  </div>
+                  )}
+
+                  {riskLevel === "Red" && (
+                    <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 flex flex-col gap-3">
+                      <p className="text-sm font-semibold text-destructive">
+                        🚨 Emergency risk detected. Use SOS immediately.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => navigate("/dashboard#sos")}
+                        className="w-full rounded-xl bg-destructive text-destructive-foreground py-2 text-sm font-semibold hover:opacity-90"
+                      >
+                        Use SOS Feature
+                      </button>
+                    </div>
+                  )}
 
                   {/* Analysis Message */}
                   {analysisMessage && (
                     <div className="bg-muted rounded-xl p-4 border-l-4 border-primary">
-                      <p className="text-sm text-foreground leading-relaxed">
-                        {analysisMessage}
-                      </p>
+                      <div className="space-y-4 text-sm text-foreground leading-relaxed">
+                        {triageSections.urgencyAdvice.length > 0 && (
+                          <div>
+                            <p className="font-semibold">Urgency Advice</p>
+                            <ul className="list-disc pl-5">
+                              {triageSections.urgencyAdvice.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {triageSections.homeCareAdvice.length > 0 && (
+                          <div>
+                            <p className="font-semibold">Home Care Advice</p>
+                            <ul className="list-disc pl-5">
+                              {triageSections.homeCareAdvice.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {triageSections.seekHelpAdvice.length > 0 && (
+                          <div>
+                            <p className="font-semibold">When to Seek Medical Help</p>
+                            <ul className="list-disc pl-5">
+                              {triageSections.seekHelpAdvice.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {triageSections.urgencyAdvice.length === 0 &&
+                          triageSections.homeCareAdvice.length === 0 &&
+                          triageSections.seekHelpAdvice.length === 0 && (
+                            <p>{analysisMessage}</p>
+                          )}
+                      </div>
                     </div>
                   )}
 
@@ -290,9 +460,14 @@ const SymptomSection = () => {
                       Possible Conditions
                     </h4>
                     <div className="space-y-3">
+                      {conditions.length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          No conditions listed in the response.
+                        </p>
+                      )}
                       {conditions.map((condition, i) => (
                         <motion.div
-                          key={condition.condition}
+                          key={`${condition.condition}-${i}`}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: i * 0.1 }}
@@ -300,28 +475,32 @@ const SymptomSection = () => {
                             condition.confidence
                           )}`}
                         >
-                          <div className="flex justify-between items-center mb-2">
+                          <div className="flex justify-between items-center">
                             <span className="text-sm font-medium text-foreground capitalize">
                               {condition.condition}
                             </span>
-                            <span className="text-xs font-bold text-foreground">
-                              {condition.confidence}%
-                            </span>
+                            {condition.confidence != null && (
+                              <span className="text-xs font-bold text-foreground">
+                                {condition.confidence}%
+                              </span>
+                            )}
                           </div>
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${condition.confidence}%` }}
-                              transition={{ duration: 0.8, ease: "easeOut" }}
-                              className={`h-full rounded-full ${
-                                condition.confidence >= 70
-                                  ? "bg-destructive"
-                                  : condition.confidence >= 40
-                                    ? "bg-yellow-500"
-                                    : "bg-sage"
-                              }`}
-                            />
-                          </div>
+                          {condition.confidence != null && (
+                            <div className="h-2 bg-muted rounded-full overflow-hidden mt-2">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${condition.confidence}%` }}
+                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                className={`h-full rounded-full ${
+                                  condition.confidence >= 70
+                                    ? "bg-destructive"
+                                    : condition.confidence >= 40
+                                      ? "bg-yellow-500"
+                                      : "bg-sage"
+                                }`}
+                              />
+                            </div>
+                          )}
                         </motion.div>
                       ))}
                     </div>
