@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Activity, AlertCircle, Info, Loader } from "lucide-react";
+import { Search, Activity, AlertCircle, Info, Loader, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Condition {
-  condition: string;
-  confidence?: number;
+  name: string;
+  reason: string;
 }
 
-interface TriageSections {
-  urgencyAdvice: string[];
-  homeCareAdvice: string[];
-  seekHelpAdvice: string[];
+interface AnalysisResult {
+  riskLevel: "Red" | "Yellow" | "Green" | null;
+  topConditions: Condition[];
+  advice: string[];
+  fullText: string;
 }
 
 const SymptomSection = () => {
@@ -20,115 +21,102 @@ const SymptomSection = () => {
   const [userGender, setUserGender] = useState("notspecified");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [riskLevel, setRiskLevel] = useState<"Red" | "Yellow" | "Green" | null>(null);
-  const [conditions, setConditions] = useState<Condition[]>([]);
-  const [analysisMessage, setAnalysisMessage] = useState("");
-  const [triageSections, setTriageSections] = useState<TriageSections>({
-    urgencyAdvice: [],
-    homeCareAdvice: [],
-    seekHelpAdvice: [],
-  });
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [showFullExplanation, setShowFullExplanation] = useState(false);
   const navigate = useNavigate();
 
-  const getRiskColor = (level: string | null) => {
+  const getRiskColor = (level: string) => {
     switch (level) {
       case "Red":
-        return "bg-destructive text-destructive-foreground";
+        return "bg-red-500 text-white";
       case "Yellow":
         return "bg-yellow-500 text-white";
       case "Green":
-        return "bg-sage text-sage-foreground";
+        return "bg-green-500 text-white";
       default:
-        return "bg-muted text-muted-foreground";
+        return "bg-gray-500 text-white";
     }
   };
 
-  const getConditionColor = (confidence?: number) => {
-    if (confidence == null) return "bg-muted";
-    if (confidence >= 70) return "bg-destructive/20";
-    if (confidence >= 40) return "bg-yellow-500/20";
-    return "bg-sage/20";
+  const getRiskLabel = (level: string) => {
+    switch (level) {
+      case "Red":
+        return "🔴 High Risk";
+      case "Yellow":
+        return "🟡 Moderate Risk";
+      case "Green":
+        return "🟢 Low Risk";
+      default:
+        return "Risk Level";
+    }
   };
 
-  const parseRiskLevel = (value: string) => {
-    const normalized = value.toLowerCase();
-    if (normalized.includes("red")) return "Red" as const;
-    if (normalized.includes("yellow")) return "Yellow" as const;
-    if (normalized.includes("green")) return "Green" as const;
-    return null;
-  };
-
-  const parseTriageReply = (replyText: string) => {
-    const lines = replyText
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-
-    let detectedRisk: "Red" | "Yellow" | "Green" | null = null;
-    const detectedConditions: Condition[] = [];
-    const sections: TriageSections = {
-      urgencyAdvice: [],
-      homeCareAdvice: [],
-      seekHelpAdvice: [],
-    };
-
-    let activeSection: "conditions" | "urgency" | "home" | "seek" | null = null;
-
-    lines.forEach((line) => {
-      if (/^risk level:/i.test(line)) {
-        const value = line.split(":")[1] || "";
-        detectedRisk = parseRiskLevel(value);
-        activeSection = null;
-        return;
-      }
-
-      if (/^possible conditions:/i.test(line)) {
-        activeSection = "conditions";
-        return;
-      }
-
-      if (/^urgency advice:/i.test(line)) {
-        activeSection = "urgency";
-        return;
-      }
-
-      if (/^home care advice:/i.test(line)) {
-        activeSection = "home";
-        return;
-      }
-
-      if (/^when to seek medical help:/i.test(line)) {
-        activeSection = "seek";
-        return;
-      }
-
-      if (/^[-•]/.test(line)) {
-        const content = line.replace(/^[-•]\s*/, "").trim();
-        if (!content) return;
-        if (activeSection === "conditions") {
-          detectedConditions.push({ condition: content });
-        } else if (activeSection === "urgency") {
-          sections.urgencyAdvice.push(content);
-        } else if (activeSection === "home") {
-          sections.homeCareAdvice.push(content);
-        } else if (activeSection === "seek") {
-          sections.seekHelpAdvice.push(content);
+  const parseGeminiResponse = (replyText: string): AnalysisResult => {
+    const lines = replyText.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+    
+    let riskLevel: "Red" | "Yellow" | "Green" | null = null;
+    const topConditions: Condition[] = [];
+    const advice: string[] = [];
+    
+    let section: "risk" | "conditions" | "advice" | null = null;
+    
+    for (const line of lines) {
+      // Detect sections
+      if (/^RiskLevel:/i.test(line)) {
+        section = "risk";
+        const match = line.match(/Red|Yellow|Green/i);
+        if (match) {
+          const level = match[0];
+          riskLevel = (level.charAt(0).toUpperCase() + level.slice(1).toLowerCase()) as "Red" | "Yellow" | "Green";
         }
-        return;
+        continue;
       }
-
-      if (!detectedRisk) {
-        const inlineRisk = parseRiskLevel(line);
-        if (inlineRisk) {
-          detectedRisk = inlineRisk;
+      
+      if (/^TopConditions:/i.test(line)) {
+        section = "conditions";
+        continue;
+      }
+      
+      if (/^ShortAdvice:/i.test(line)) {
+        section = "advice";
+        continue;
+      }
+      
+      // Parse content
+      if (section === "conditions" && /^\d+\./.test(line)) {
+        // Format: "1. Condition name – short reason"
+        const match = line.match(/^\d+\.\s*(.+?)\s*[–—-]\s*(.+)$/);
+        if (match) {
+          topConditions.push({ name: match[1].trim(), reason: match[2].trim() });
+        } else {
+          // Fallback: just take the text after the number
+          const text = line.replace(/^\d+\.\s*/, "").trim();
+          if (text) {
+            topConditions.push({ name: text, reason: "" });
+          }
+        }
+      } else if (section === "advice" && /^[-•]/.test(line)) {
+        const text = line.replace(/^[-•]\s*/, "").trim();
+        if (text) {
+          advice.push(text);
         }
       }
-    });
-
+    }
+    
+    // Fallback: if no structured data found, try to extract inline
+    if (!riskLevel) {
+      const match = replyText.match(/\b(Red|Yellow|Green)\b/i);
+      if (match) {
+        const level = match[1];
+        riskLevel = (level.charAt(0).toUpperCase() + level.slice(1).toLowerCase()) as "Red" | "Yellow" | "Green";
+      }
+    }
+    
     return {
-      detectedRisk,
-      detectedConditions,
-      sections,
+      riskLevel,
+      topConditions: topConditions.slice(0, 3), // Max 3
+      advice: advice.slice(0, 3), // Max 3
+      fullText: replyText,
     };
   };
 
@@ -149,36 +137,30 @@ const SymptomSection = () => {
 
     setLoading(true);
     setError("");
-    setRiskLevel(null);
-    setConditions([]);
-    setAnalysisMessage("");
-    setTriageSections({ urgencyAdvice: [], homeCareAdvice: [], seekHelpAdvice: [] });
+    setResult(null);
+    setShowFullExplanation(false);
 
     try {
-      console.log("📋 Sending request to backend...");
-      console.log("   Symptoms:", userSymptoms);
-      console.log("   Age:", userAge);
-      console.log("   Gender:", userGender);
-
       const triagePrompt = `You are a healthcare triage assistant.
-Provide informational guidance only.
-Do not diagnose.
 
-Analyze the symptoms below and respond in this format:
+Analyze the symptoms below and respond STRICTLY in this JSON-like format:
 
-Risk Level: (Green / Yellow / Red)
-Possible Conditions:
-- ...
-- ...
-Urgency Advice:
-- ...
-Home Care Advice:
-- ...
-When to Seek Medical Help:
-- ...
+RiskLevel: Green | Yellow | Red
+
+TopConditions:
+1. Condition name – short reason (1 line)
+2. Condition name – short reason (1 line)
+3. Condition name – short reason (1 line)
+
+ShortAdvice:
+- 2–3 bullet points only
 
 Symptoms:
-${userSymptoms}`;
+${userSymptoms}
+
+Do NOT include long explanations.
+Do NOT include markdown.
+Keep it concise.`;
 
       const response = await fetch("http://localhost:5000/chat", {
         method: "POST",
@@ -196,15 +178,10 @@ ${userSymptoms}`;
       }
 
       const data = await response.json();
-      console.log("✅ Backend response:", data);
-
       const replyText = typeof data.reply === "string" ? data.reply : "";
-      const parsed = parseTriageReply(replyText);
-
-      setRiskLevel(parsed.detectedRisk);
-      setConditions(parsed.detectedConditions);
-      setTriageSections(parsed.sections);
-      setAnalysisMessage(replyText);
+      const parsed = parseGeminiResponse(replyText);
+      
+      setResult(parsed);
     } catch (err) {
       console.error("❌ Error:", err);
       if (err instanceof Error) {
@@ -356,7 +333,7 @@ ${userSymptoms}`;
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.15 }}
           >
-            <div className="bg-card rounded-3xl border border-border p-6 shadow-sm">
+            <div className="bg-card rounded-3xl border border-border p-6 shadow-sm min-h-[500px]">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-sage/30 flex items-center justify-center">
                   <Activity className="w-5 h-5 text-sage-foreground" />
@@ -364,146 +341,145 @@ ${userSymptoms}`;
                 <h3 className="font-heading font-bold text-foreground">Analysis Results</h3>
               </div>
 
-              {!analysisMessage && !loading && (
-                <div className="text-center py-8">
-                  <Activity className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
+              {/* Empty State */}
+              {!result && !loading && (
+                <div className="text-center py-16">
+                  <Activity className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
                   <p className="text-sm text-muted-foreground">
                     Enter your symptoms and click "Analyze" to get started
                   </p>
                 </div>
               )}
 
+              {/* Loading State */}
               {loading && (
-                <div className="text-center py-12">
-                  <Loader className="w-10 h-10 mx-auto animate-spin text-primary mb-4" />
+                <div className="text-center py-16">
+                  <Loader className="w-12 h-12 mx-auto animate-spin text-primary mb-4" />
                   <p className="text-sm text-muted-foreground">Analyzing your symptoms...</p>
+                  <p className="text-xs text-muted-foreground/70 mt-2">This may take a few seconds</p>
                 </div>
               )}
 
-              {analysisMessage && (
+              {/* Results Display */}
+              {result && (
                 <div className="space-y-6">
-                  {/* Risk Level Badge */}
-                  {riskLevel && (
-                    <div className="flex items-center gap-3 mb-6">
+                  {/* 🔴 RISK BADGE */}
+                  {result.riskLevel && (
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="flex justify-center"
+                    >
                       <div
-                        className={`px-4 py-2 rounded-full font-bold text-sm ${getRiskColor(
-                          riskLevel
-                        )}`}
+                        className={`${getRiskColor(result.riskLevel)} px-8 py-4 rounded-2xl font-bold text-lg shadow-lg`}
                       >
-                        Risk Level: {riskLevel}
+                        {getRiskLabel(result.riskLevel)}
                       </div>
-                      <AlertCircle className="w-5 h-5 text-orange-500" />
-                    </div>
+                    </motion.div>
                   )}
 
-                  {riskLevel === "Red" && (
-                    <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 flex flex-col gap-3">
-                      <p className="text-sm font-semibold text-destructive">
-                        🚨 Emergency risk detected. Use SOS immediately.
-                      </p>
+                  {/* 🚨 SOS INTEGRATION */}
+                  {result.riskLevel === "Red" && (
+                    <motion.div
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      className="rounded-xl border-2 border-red-500 bg-red-50 p-4 space-y-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 text-red-600" />
+                        <p className="text-sm font-bold text-red-900">
+                          This may require immediate medical attention.
+                        </p>
+                      </div>
                       <button
                         type="button"
                         onClick={() => navigate("/dashboard#sos")}
-                        className="w-full rounded-xl bg-destructive text-destructive-foreground py-2 text-sm font-semibold hover:opacity-90"
+                        className="w-full rounded-xl bg-red-600 text-white py-3 text-sm font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
                       >
-                        Use SOS Feature
+                        🚨 Use SOS Feature Now
                       </button>
-                    </div>
+                    </motion.div>
                   )}
 
-                  {/* Analysis Message */}
-                  {analysisMessage && (
-                    <div className="bg-muted rounded-xl p-4 border-l-4 border-primary">
-                      <div className="space-y-4 text-sm text-foreground leading-relaxed">
-                        {triageSections.urgencyAdvice.length > 0 && (
-                          <div>
-                            <p className="font-semibold">Urgency Advice</p>
-                            <ul className="list-disc pl-5">
-                              {triageSections.urgencyAdvice.map((item) => (
-                                <li key={item}>{item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {triageSections.homeCareAdvice.length > 0 && (
-                          <div>
-                            <p className="font-semibold">Home Care Advice</p>
-                            <ul className="list-disc pl-5">
-                              {triageSections.homeCareAdvice.map((item) => (
-                                <li key={item}>{item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {triageSections.seekHelpAdvice.length > 0 && (
-                          <div>
-                            <p className="font-semibold">When to Seek Medical Help</p>
-                            <ul className="list-disc pl-5">
-                              {triageSections.seekHelpAdvice.map((item) => (
-                                <li key={item}>{item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {triageSections.urgencyAdvice.length === 0 &&
-                          triageSections.homeCareAdvice.length === 0 &&
-                          triageSections.seekHelpAdvice.length === 0 && (
-                            <p>{analysisMessage}</p>
-                          )}
+                  {/* 🦠 TOP 3 CONDITIONS */}
+                  {result.topConditions.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                        🦠 Top Possible Conditions
+                      </h4>
+                      <div className="space-y-3">
+                        {result.topConditions.map((condition, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: i * 0.1 }}
+                            className="bg-gradient-to-r from-primary/5 to-transparent border border-border rounded-xl p-4 hover:shadow-md transition-shadow"
+                          >
+                            <div className="font-semibold text-foreground mb-1">
+                              {condition.name}
+                            </div>
+                            {condition.reason && (
+                              <div className="text-sm text-muted-foreground">
+                                {condition.reason}
+                              </div>
+                            )}
+                          </motion.div>
+                        ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Top 3 Conditions */}
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground mb-4">
-                      Possible Conditions
-                    </h4>
-                    <div className="space-y-3">
-                      {conditions.length === 0 && (
-                        <p className="text-sm text-muted-foreground">
-                          No conditions listed in the response.
-                        </p>
-                      )}
-                      {conditions.map((condition, i) => (
-                        <motion.div
-                          key={`${condition.condition}-${i}`}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                          className={`rounded-lg p-3 ${getConditionColor(
-                            condition.confidence
-                          )}`}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-foreground capitalize">
-                              {condition.condition}
-                            </span>
-                            {condition.confidence != null && (
-                              <span className="text-xs font-bold text-foreground">
-                                {condition.confidence}%
-                              </span>
-                            )}
-                          </div>
-                          {condition.confidence != null && (
-                            <div className="h-2 bg-muted rounded-full overflow-hidden mt-2">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${condition.confidence}%` }}
-                                transition={{ duration: 0.8, ease: "easeOut" }}
-                                className={`h-full rounded-full ${
-                                  condition.confidence >= 70
-                                    ? "bg-destructive"
-                                    : condition.confidence >= 40
-                                      ? "bg-yellow-500"
-                                      : "bg-sage"
-                                }`}
-                              />
-                            </div>
-                          )}
-                        </motion.div>
-                      ))}
+                  {/* 🩺 QUICK ADVICE */}
+                  {result.advice.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                        🩺 Quick Advice
+                      </h4>
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <ul className="space-y-2">
+                          {result.advice.map((item, i) => (
+                            <motion.li
+                              key={i}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: i * 0.1 }}
+                              className="text-sm text-blue-900 flex items-start gap-2"
+                            >
+                              <span className="text-blue-600 mt-0.5">•</span>
+                              <span>{item}</span>
+                            </motion.li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
+                  )}
+
+                  {/* 📄 VIEW DETAILED EXPLANATION TOGGLE */}
+                  <div>
+                    <button
+                      onClick={() => setShowFullExplanation(!showFullExplanation)}
+                      className="w-full flex items-center justify-between bg-muted hover:bg-muted/80 rounded-xl p-3 text-sm font-medium text-foreground transition-colors"
+                    >
+                      <span>View detailed explanation</span>
+                      {showFullExplanation ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </button>
+                    {showFullExplanation && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="mt-3 bg-muted/50 rounded-xl p-4 border border-border overflow-hidden"
+                      >
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                          {result.fullText}
+                        </p>
+                      </motion.div>
+                    )}
                   </div>
                 </div>
               )}
