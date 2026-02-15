@@ -4,10 +4,13 @@ import { Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useSettings } from "@/contexts/SettingsContext";
+import { languageNames, type Language } from "@/translations";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { language, setLanguage } = useSettings();
   const navigate = useNavigate();
 
   const links = [
@@ -55,6 +58,17 @@ const Navbar = () => {
           >
             SOS
           </button>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as Language)}
+            className="text-sm font-medium bg-muted text-foreground px-3 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+          >
+            {Object.entries(languageNames).map(([code, name]) => (
+              <option key={code} value={code}>
+                {name}
+              </option>
+            ))}
+          </select>
           {user ? (
             <>
               <Button variant="ghost" asChild>
@@ -118,6 +132,17 @@ const Navbar = () => {
               >
                 SOS Emergency
               </button>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+                className="text-sm font-medium bg-muted text-foreground px-3 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary w-full"
+              >
+                {Object.entries(languageNames).map(([code, name]) => (
+                  <option key={code} value={code}>
+                    {name}
+                  </option>
+                ))}
+              </select>
               {user ? (
                 <>
                   <Button variant="ghost" asChild onClick={() => setIsOpen(false)}>

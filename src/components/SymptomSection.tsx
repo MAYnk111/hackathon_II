@@ -2,6 +2,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Search, Activity, AlertCircle, Info, Loader, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSettings } from "@/contexts/SettingsContext";
+import { translations } from "@/translations";
 
 interface Condition {
   name: string;
@@ -16,6 +18,8 @@ interface AnalysisResult {
 }
 
 const SymptomSection = () => {
+  const { language } = useSettings();
+  const t = translations[language];
   const [userSymptoms, setUserSymptoms] = useState("");
   const [userAge, setUserAge] = useState("");
   const [userGender, setUserGender] = useState("notspecified");
@@ -41,11 +45,11 @@ const SymptomSection = () => {
   const getRiskLabel = (level: string) => {
     switch (level) {
       case "Red":
-        return "🔴 High Risk";
+        return `🔴 ${t.highRisk}`;
       case "Yellow":
-        return "🟡 Moderate Risk";
+        return `🟡 ${t.moderateRisk}`;
       case "Green":
-        return "🟢 Low Risk";
+        return `🟢 ${t.lowRisk}`;
       default:
         return "Risk Level";
     }
@@ -169,6 +173,7 @@ Keep it concise.`;
         },
         body: JSON.stringify({
           message: triagePrompt,
+          language: language,
         }),
       });
 
@@ -245,18 +250,18 @@ Keep it concise.`;
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Search className="w-5 h-5 text-primary" />
                 </div>
-                <h3 className="font-heading font-bold text-foreground">Describe your symptoms</h3>
+                <h3 className="font-heading font-bold text-foreground">{t.describeSymptoms}</h3>
               </div>
 
               {/* Symptoms Input */}
               <div className="mb-4">
                 <label className="text-xs font-semibold text-muted-foreground mb-2 block">
-                  Your Symptoms
+                  {t.yourSymptoms}
                 </label>
                 <textarea
                   value={userSymptoms}
                   onChange={(e) => setUserSymptoms(e.target.value)}
-                  placeholder="e.g., I have a persistent headache for two days, runny nose, and mild sneezing..."
+                  placeholder={t.symptomPlaceholder}
                   disabled={loading}
                   className="w-full bg-muted rounded-2xl p-4 text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50"
                   rows={4}
@@ -267,13 +272,13 @@ Keep it concise.`;
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground mb-2 block">
-                    Age
+                    {t.age}
                   </label>
                   <input
                     type="number"
                     value={userAge}
                     onChange={(e) => setUserAge(e.target.value)}
-                    placeholder="e.g., 25"
+                    placeholder={t.agePlaceholder}
                     disabled={loading}
                     min="1"
                     max="150"
@@ -284,18 +289,18 @@ Keep it concise.`;
                 {/* Gender Select */}
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground mb-2 block">
-                    Gender
+                    {t.gender}
                   </label>
                   <select
                     value={userGender}
                     onChange={(e) => setUserGender(e.target.value)}
                     disabled={loading}
-                    className="w-full bg-muted rounded-lg p-3 text-foreground border border-border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50"
+                    className="w-full bg-muted rounded-lg p-3 text-foreground border border-border focus:outline-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50"
                   >
-                    <option value="notspecified">Select...</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
+                    <option value="notspecified">{t.selectGender}</option>
+                    <option value="male">{t.male}</option>
+                    <option value="female">{t.female}</option>
+                    <option value="other">{t.other}</option>
                   </select>
                 </div>
               </div>
@@ -317,10 +322,10 @@ Keep it concise.`;
                 {loading ? (
                   <>
                     <Loader className="w-4 h-4 animate-spin" />
-                    Analyzing...
+                    {t.analyzing}
                   </>
                 ) : (
-                  "Analyze Symptoms"
+                  t.analyze
                 )}
               </button>
             </div>
@@ -338,7 +343,7 @@ Keep it concise.`;
                 <div className="w-10 h-10 rounded-xl bg-sage/30 flex items-center justify-center">
                   <Activity className="w-5 h-5 text-sage-foreground" />
                 </div>
-                <h3 className="font-heading font-bold text-foreground">Analysis Results</h3>
+                <h3 className="font-heading font-bold text-foreground">{t.analysisResults}</h3>
               </div>
 
               {/* Empty State */}
@@ -346,7 +351,7 @@ Keep it concise.`;
                 <div className="text-center py-16">
                   <Activity className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
                   <p className="text-sm text-muted-foreground">
-                    Enter your symptoms and click "Analyze" to get started
+                    {t.enterSymptoms}
                   </p>
                 </div>
               )}
@@ -355,7 +360,7 @@ Keep it concise.`;
               {loading && (
                 <div className="text-center py-16">
                   <Loader className="w-12 h-12 mx-auto animate-spin text-primary mb-4" />
-                  <p className="text-sm text-muted-foreground">Analyzing your symptoms...</p>
+                  <p className="text-sm text-muted-foreground">{t.analyzing}</p>
                   <p className="text-xs text-muted-foreground/70 mt-2">This may take a few seconds</p>
                 </div>
               )}
@@ -388,7 +393,7 @@ Keep it concise.`;
                       <div className="flex items-center gap-2">
                         <AlertCircle className="w-5 h-5 text-red-600" />
                         <p className="text-sm font-bold text-red-900">
-                          This may require immediate medical attention.
+                          {t.emergency}
                         </p>
                       </div>
                       <button
@@ -396,7 +401,7 @@ Keep it concise.`;
                         onClick={() => navigate("/dashboard#sos")}
                         className="w-full rounded-xl bg-red-600 text-white py-3 text-sm font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
                       >
-                        🚨 Use SOS Feature Now
+                        🚨 {t.useSOSNow}
                       </button>
                     </motion.div>
                   )}
@@ -405,7 +410,7 @@ Keep it concise.`;
                   {result.topConditions.length > 0 && (
                     <div>
                       <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-                        🦠 Top Possible Conditions
+                        🦠 {t.topConditions}
                       </h4>
                       <div className="space-y-3">
                         {result.topConditions.map((condition, i) => (
@@ -434,7 +439,7 @@ Keep it concise.`;
                   {result.advice.length > 0 && (
                     <div>
                       <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-                        🩺 Quick Advice
+                        🩺 {t.quickAdvice}
                       </h4>
                       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                         <ul className="space-y-2">
@@ -461,7 +466,7 @@ Keep it concise.`;
                       onClick={() => setShowFullExplanation(!showFullExplanation)}
                       className="w-full flex items-center justify-between bg-muted hover:bg-muted/80 rounded-xl p-3 text-sm font-medium text-foreground transition-colors"
                     >
-                      <span>View detailed explanation</span>
+                      <span>{t.viewDetails}</span>
                       {showFullExplanation ? (
                         <ChevronUp className="w-4 h-4" />
                       ) : (
@@ -488,8 +493,7 @@ Keep it concise.`;
               <div className="mt-6 flex items-start gap-2 bg-warm rounded-xl p-3">
                 <Info className="w-4 h-4 text-warm-foreground mt-0.5 shrink-0" />
                 <p className="text-xs text-warm-foreground leading-relaxed">
-                  This is informational AI-assisted analysis and not a medical diagnosis. Always consult
-                  a qualified healthcare professional for proper medical advice.
+                  {t.disclaimer}
                 </p>
               </div>
             </div>

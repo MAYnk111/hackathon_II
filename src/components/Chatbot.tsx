@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useSettings } from '@/contexts/SettingsContext';
+import { translations } from '@/translations';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -14,6 +16,8 @@ interface Message {
 }
 
 export function Chatbot() {
+  const { language } = useSettings();
+  const t = translations[language];
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -80,7 +84,8 @@ export function Chatbot() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: inputMessage
+          message: inputMessage,
+          language: language
         })
       });
 
@@ -147,7 +152,7 @@ export function Chatbot() {
                 <Bot className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <CardTitle>AI Health Assistant</CardTitle>
+                <CardTitle>{t.chat}</CardTitle>
                 <CardDescription>
                   Get guidance on health questions
                 </CardDescription>
@@ -159,7 +164,7 @@ export function Chatbot() {
           <Alert className="mt-4 bg-amber-50 border-amber-200">
             <AlertCircle className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-sm text-amber-800">
-              This assistant provides informational guidance only.
+              {t.disclaimer}
             </AlertDescription>
           </Alert>
         </CardHeader>
@@ -278,7 +283,7 @@ export function Chatbot() {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Type your health question..."
+              placeholder={t.chatPlaceholder}
               disabled={isLoading}
               className="flex-1"
             />

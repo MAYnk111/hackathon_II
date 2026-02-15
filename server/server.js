@@ -383,14 +383,33 @@ app.post('/analyze-symptoms', async (req, res) => {
  */
 app.post('/chat', async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, language } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: 'Message required' });
     }
 
+    // Map language code to full language name
+    const languageMap = {
+      en: 'English',
+      hi: 'Hindi',
+      mr: 'Marathi'
+    };
+
+    const selectedLanguage = languageMap[language] || 'English';
+
+    // Create a prompt that instructs Gemini to respond in the selected language
+    const prompt = `You are a healthcare assistant.
+
+Respond strictly in ${selectedLanguage}.
+Use simple, clear language appropriate for the user's language.
+Do not diagnose or prescribe medication.
+If symptoms indicate emergency, suggest using the SOS feature.
+
+User: ${message}`;
+
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
-    const result = await model.generateContent(message);
+    const result = await model.generateContent(prompt);
     const reply = result.response.text() || '';
     return res.json({ reply });
   } catch (error) {

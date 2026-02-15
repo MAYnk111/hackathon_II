@@ -2,10 +2,9 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { useTranslation } from "react-i18next";
+import type { Language } from "@/translations";
 
 type FontSize = "small" | "medium" | "large";
-type Language = "en" | "hi";
 
 interface SettingsContextType {
   darkMode: boolean;
@@ -35,43 +34,60 @@ const fontSizeMap = {
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const { i18n } = useTranslation();
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSizeState] = useState<FontSize>("medium");
   const [language, setLanguageState] = useState<Language>("en");
   const [loading, setLoading] = useState(true);
 
-  // Load settings from Firestore
+  // Load settings on mount (localStorage first, then Firebase)
   useEffect(() => {
     const loadSettings = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
+      // Load from localStorage first (instant)
+      const savedLang = localStorage.getItem("app_language") as Language;
+      if (savedLang && ["en", "hi", "mr"].includes(savedLang)) {
+        setLanguageState(savedLang);
       }
 
-      try {
-        const settingsDoc = await getDoc(doc(db, "users", user.uid, "settings", "preferences"));
-        if (settingsDoc.exists()) {
-          const data = settingsDoc.data();
-          if (data.darkMode !== undefined) {
-            setDarkMode(data.darkMode);
-            applyTheme(data.darkMode);
-          }
-          if (data.fontSize) {
-            setFontSizeState(data.fontSize);
-            applyFontSize(data.fontSize);
-          }
-          if (data.language) {
-            setLanguageState(data.language);
-            await i18n.changeLanguage(data.language);
-            console.log("Language loaded from Firestore:", data.language);
-          }
-        }
-      } catch (error) {
-        console.error("Error loading settings:", error);
-      } finally {
-        setLoading(false);
+      const savedDarkMode = localStorage.getItem("app_darkMode");
+      if (savedDarkMode !== null) {
+        const isDark = savedDarkMode === "true";
+        setDarkMode(isDark);
+        applyTheme(isDark);
       }
+
+      const savedFontSize = localStorage.getItem("app_fontSize") as FontSize;
+      if (savedFontSize && ["small", "medium", "large"].includes(savedFontSize)) {
+        setFontSizeState(savedFontSize);
+        applyFontSize(savedFontSize);
+      }
+
+      // If user is logged in, try to load from Firebase (cloud sync)
+      if (user) {
+        try {
+          const settingsDoc = await getDoc(doc(db, "users", user.uid, "settings", "preferences"));
+          if (settingsDoc.exists()) {
+            const data = settingsDoc.data();
+            if (data.darkMode !== undefined) {
+              setDarkMode(data.darkMode);
+              applyTheme(data.darkMode);
+              localStorage.setItem("app_darkMode", String(data.darkMode));
+            }
+            if (data.fontSize) {
+              setFontSizeState(data.fontSize);
+              applyFontSize(data.fontSize);
+              localStorage.setItem("app_fontSize", data.fontSize);
+            }
+            if (data.language && ["en", "hi", "mr"].includes(data.language)) {
+              setLanguageState(data.language);
+              localStorage.setItem("app_language", data.language);
+            }
+          }
+        } catch (error) {
+          console.error("Error loading settings from Firebase:", error);
+        }
+      }
+      
+      setLoading(false);
     };
 
     loadSettings();
@@ -93,7 +109,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const newMode = !darkMode;
     setDarkMode(newMode);
     applyTheme(newMode);
-    console.log("Dark mode toggled to:", newMode);
+    localStorage.setItem("app_darkMode", String(newMode));
 
     if (user?.uid) {
       try {
@@ -102,19 +118,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           { darkMode: newMode },
           { merge: true }
         );
-        console.log("Dark mode saved to Firestore:", newMode);
       } catch (error) {
         console.error("Error saving dark mode to Firestore:", error);
       }
-    } else {
-      console.warn("Cannot save dark mode: User not authenticated");
     }
   };
 
   const setFontSize = async (size: FontSize) => {
     setFontSizeState(size);
     applyFontSize(size);
-    console.log("Font size changed to:", size, "(", fontSizeMap[size], ")");
+    localStorage.setItem("app_fontSize", size);
 
     if (user?.uid) {
       try {
@@ -123,28 +136,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           { fontSize: size },
           { merge: true }
         );
-        console.log("Font size saved to Firestore:", size);
       } catch (error) {
         console.error("Error saving font size to Firestore:", error);
       }
-    } else {
-      console.warn("Cannot save font size: User not authenticated");
     }
   };
 
   const setLanguage = async (lang: Language) => {
-    console.log("Setting language to:", lang);
     setLanguageState(lang);
-    
-    // Update i18next language immediately
-    try {
-      await i18n.changeLanguage(lang);
-      console.log("i18next language changed to:", lang);
-    } catch (error) {
-      console.error("Error changing i18next language:", error);
-    }
+    localStorage.setItem("app_language", lang);
 
-    // Save to Firestore if user is logged in
     if (user?.uid) {
       try {
         await setDoc(
@@ -152,12 +153,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           { language: lang },
           { merge: true }
         );
-        console.log("Language saved to Firestore:", lang);
       } catch (error) {
         console.error("Error saving language to Firestore:", error);
       }
-    } else {
-      console.warn("Cannot save language: User not authenticated");
     }
   };
 
