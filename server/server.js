@@ -17,16 +17,11 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware - CORS configured for production
+// Middleware - CORS configured for hackathon prototype deployment
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    process.env.FRONTEND_URL
-  ].filter(Boolean),
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: "*",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"],
 }));
 app.use(express.json());
 
