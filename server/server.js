@@ -6,7 +6,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { pipeline } from '@xenova/transformers';
 import multer from 'multer';
 
 // Load environment variables first
@@ -115,24 +114,6 @@ const YELLOW_FLAG_KEYWORDS = [
 ];
 
 // ============================================================================
-// STEP 2: Improved Candidate Labels (12 conditions)
-// ============================================================================
-const CANDIDATE_LABELS = [
-  "tuberculosis",
-  "viral infection",
-  "bacterial infection",
-  "malaria",
-  "dengue",
-  "food poisoning",
-  "common cold",
-  "migraine",
-  "asthma",
-  "heat stroke",
-  "allergic reaction",
-  "gastroenteritis"
-];
-
-// ============================================================================
 // Helper Functions for Rule-Based Detection
 // ============================================================================
 
@@ -156,47 +137,7 @@ function checkYellowFlags(symptoms) {
   return null;
 }
 
-// Initialize classifier globally
-let classifier = null;
-let classifierReady = false;
 
-async function initializeClassifier() {
-  if (classifierReady) return;
-  
-  try {
-    console.log('🔄 Loading zero-shot classification model...');
-    classifier = await pipeline('zero-shot-classification', 'Xenova/bart-large-mnli');
-    classifierReady = true;
-    console.log('✅ Model loaded successfully!');
-  } catch (error) {
-    console.error('❌ Failed to load model:', error);
-    classifierReady = false;
-  }
-}
-
-/**
- * Analyze symptoms using zero-shot classification
- */
-async function analyzeSymptoms(symptoms, candidateLabels) {
-  const startTime = Date.now();
-  
-  try {
-    console.log(`\n🧠 Running zero-shot classification...`);
-    
-    const result = await classifier(symptoms, candidateLabels, {
-      multi_label: true
-    });
-    
-    const elapsedTime = Date.now() - startTime;
-    console.log(`✅ Classification complete (${elapsedTime}ms)`);
-    
-    return result;
-  } catch (error) {
-    const elapsedTime = Date.now() - startTime;
-    console.error(`❌ Classification error (${elapsedTime}ms):`, error.message);
-    throw error;
-  }
-}
 
 /**
  * POST /analyze-symptoms
@@ -263,121 +204,90 @@ app.post('/analyze-symptoms', async (req, res) => {
     }
 
     // ========================================================================
-    // STEP 3: Ensure classifier is initialized
+    // STEP 3: Use Gemini API for condition analysis
     // ========================================================================
-    if (!classifierReady) {
-      await initializeClassifier();
-    }
-
-    if (!classifier) {
-      return res.status(500).json({
-        riskLevel: riskFloor,
-        topConditions: [],
-        explanation: 'Classification model is not available',
-        triageType: 'error'
-      });
-    }
-
-    // ========================================================================
-    // STEP 4: Run ML classification for condition prediction
-    // ========================================================================
-    console.log(`\n🧠 Running ML classification for conditions...`);
-    const mlResult = await analyzeSymptoms(symptoms, CANDIDATE_LABELS);
-
-    const { labels, scores } = mlResult;
-
-    if (!labels || !scores || labels.length === 0) {
-      return res.status(500).json({
-        riskLevel: riskFloor,
-        topConditions: [],
-        explanation: 'Invalid response from classification model',
-        triageType: 'ml-error'
-      });
-    }
-
-    // ========================================================================
-    // STEP 5: Get top 3 conditions with improved confidence scores
-    // ========================================================================
-    const topConditions = labels.slice(0, 3).map((label, index) => ({
-      condition: label,
-      confidence: Math.round(scores[index] * 100)
-    }));
-
-    console.log(`\n📊 ML Classification Results:`);
-    console.log(`   Top score: ${Math.round(scores[0] * 100)}% (${labels[0]})`);
-    topConditions.forEach((c, i) => {
-      console.log(`   ${i + 1}. ${c.condition}: ${c.confidence}%`);
-    });
-
-    // ========================================================================
-    // STEP 6: IMPROVED RISK LOGIC with new thresholds
-    // ========================================================================
-    const topScore = scores[0];
+    console.log(`\n🧠 Using Gemini API for condition analysis...`);
     
-    let mlRiskLevel = 'Green';
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
     
-    console.log(`\n🔢 Calculating risk level (topScore: ${Math.round(topScore * 100)}%)`);
-    
-    if (topScore > 0.85) {
-      mlRiskLevel = 'Red';
-      console.log(`   → topScore > 85% = RED (very high confidence)`);
-    } else if (topScore > 0.65) {
-      mlRiskLevel = 'Yellow';
-      console.log(`   → topScore > 65% = YELLOW (moderate-high confidence)`);
-    } else {
-      mlRiskLevel = 'Green';
-      console.log(`   → topScore ≤ 65% = GREEN (low confidence)`);
+    const analysisPrompt = `You are a medical triage assistant. Analyze the following symptoms and provide a brief assessment.
+
+Symptoms: ${symptoms}
+Age: ${age}
+Gender: ${gender}
+
+Respond ONLY in this JSON format (no other text):
+{
+  "topConditions": [
+    {"condition": "condition name", "confidence": 75}
+  ],
+  "riskAssessment": "brief risk assessment"
+}`;
+
+    let geminiResult;
+    try {
+      const result = await model.generateContent(analysisPrompt);
+      const responseText = result.response.text();
+      
+      // Extract JSON from response
+      const jsonMatch = responseText.match(/\{[^{}]*\}/);
+      if (jsonMatch) {
+        geminiResult = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error) {
+      console.error('Gemini analysis error:', error);
+      geminiResult = {
+        topConditions: [{ condition: 'Unable to analyze', confidence: 0 }],
+        riskAssessment: 'Please consult a healthcare provider'
+      };
     }
 
-    // ========================================================================
-    // STEP 7: Apply risk floor (YELLOW flag can't downgrade to Green)
-    // ========================================================================
-    let finalRiskLevel = mlRiskLevel;
+    const topConditions = geminiResult.topConditions || [];
     
-    if (riskFloor === 'Yellow' && (mlRiskLevel === 'Green')) {
-      console.log(`\n🔐 Risk floor enforced: YELLOW flag prevents downgrade to GREEN`);
-      finalRiskLevel = 'Yellow';
-    } else {
-      console.log(`\n✅ Final risk: ${finalRiskLevel}`);
+    // ========================================================================
+    // STEP 4: Determine final risk level
+    // ========================================================================
+    let finalRiskLevel = riskFloor; // Start with risk floor (Red or Yellow)
+    
+    if (topConditions.length > 0) {
+      const topConfidence = topConditions[0].confidence;
+      
+      if (topConfidence > 85) {
+        finalRiskLevel = 'Red';
+      } else if (topConfidence > 65) {
+        finalRiskLevel = finalRiskLevel === 'Green' ? 'Yellow' : finalRiskLevel;
+      }
     }
+    
+    console.log(`✅ Final risk level: ${finalRiskLevel}`);
 
     // ========================================================================
-    // STEP 8: Build explanation message
+    // STEP 5: Build explanation and return response
     // ========================================================================
-    let explanation = `Hybrid Triage Result: `;
+    let explanation = geminiResult.riskAssessment || 'Unable to provide assessment';
     
     if (yellowFlag && !redFlag) {
-      explanation += `YELLOW flag ("${yellowFlag}") detected. `;
+      explanation = `⚠️ Yellow flag detected ("${yellowFlag}"): ${explanation}`;
     }
     
-    if (finalRiskLevel === 'Red') {
-      explanation += `High likelihood of ${topConditions[0].condition} (${topConditions[0].confidence}%). Medical attention is recommended.`;
-    } else if (finalRiskLevel === 'Yellow') {
-      explanation += `${topConditions[0].condition} is possible (${topConditions[0].confidence}%). Monitor symptoms and consider consulting a healthcare provider.`;
-    } else {
-      explanation += `Symptoms suggest mild conditions (${topConditions[0].condition}: ${topConditions[0].confidence}%). Home care and monitoring are appropriate.`;
+    if (redFlag) {
+      explanation = `🚑 EMERGENCY: ${explanation}`;
     }
 
-    console.log(`\n📝 Final Explanation: ${explanation}`);
-
-    // ========================================================================
-    // STEP 9: Return structured response
-    // ========================================================================
     return res.status(200).json({
       riskLevel: finalRiskLevel,
       topConditions,
       explanation,
-      triageType: 'hybrid-ml',
+      triageType: 'rule-based-gemini',
       flags: {
         redFlag: redFlag || null,
         yellowFlag: yellowFlag || null
       },
       analysis: {
         age,
-        gender,
-        topScore: Math.round(topScore * 100),
-        mlRiskLevel,
-        riskFloor
+        gender
       }
     });
 
@@ -540,14 +450,13 @@ app.get('/', (req, res) => {
     version: '2.1',
     status: 'running',
     endpoints: {
-      'POST /analyze-symptoms': 'Hybrid triage system with ML + rule-based detection',
+      'POST /analyze-symptoms': 'Symptom triage system with Gemini + rule-based detection',
       'POST /chat': 'AI Healthcare Assistant chatbot',
       'POST /verify-medicine': 'Medicine authenticity verification with image analysis',
       'GET /health': 'Health and status check'
     },
     documentation: 'See CHATBOT_IMPLEMENTATION.md and HYBRID_TRIAGE_IMPLEMENTATION.md',
-    chatbotEnabled: true,
-    modelReady: classifierReady
+    chatbotEnabled: true
   });
 });
 
@@ -555,31 +464,26 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
   res.json({
     status: 'Symptom Triage API is running 🏥',
-    modelReady: classifierReady,
-    triageSystem: 'hybrid-rule-based-ml',
+    triageSystem: 'rule-based-gemini',
     chatbotEnabled: true,
     version: '2.1'
   });
 });
 
 // Start server
-async function startServer() {
-  // Initialize classifier on startup
-  await initializeClassifier();
-  
+function startServer() {
   app.listen(PORT, () => {
     console.log(`\n${'='.repeat(60)}`);
-    console.log(`🏥 HYBRID SYMPTOM TRIAGE API v2.0`);
+    console.log(`🏥 AROGYA HEALTH API v2.1`);
     console.log(`${'='.repeat(60)}`);
     console.log(`🌍 Server running on port ${PORT}`);
-    console.log(`📋 Model Status: ${classifierReady ? '✅ Ready' : '❌ Loading...'}`);
     console.log(`\n🔧 Triage Features:`);
     console.log(`   • Rule-based RED flag detection (${RED_FLAG_KEYWORDS.length} keywords)`);
     console.log(`   • Rule-based YELLOW flag detection (${YELLOW_FLAG_KEYWORDS.length} keywords)`);
-    console.log(`   • ML condition classification (${CANDIDATE_LABELS.length} conditions)`);
-    console.log(`   • Improved risk thresholds (>85%=Red, >60%=Yellow)`);
+    console.log(`   • Gemini API condition analysis`);
+    console.log(`   • AI-powered healthcare chatbot`);
     console.log(`\n📡 Endpoints:`);
-    console.log(`   POST /analyze-symptoms - Analyze with hybrid triage`);
+    console.log(`   POST /analyze-symptoms - Analyze with Gemini + rules`);
     console.log(`   POST /chat - AI Healthcare Assistant`);
     console.log(`   POST /verify-medicine - Medicine authenticity verification`);
     console.log(`   GET  /health - Health & status check`);
@@ -587,7 +491,4 @@ async function startServer() {
   });
 }
 
-startServer().catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});
+startServer();
