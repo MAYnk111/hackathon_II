@@ -14,6 +14,7 @@ const Navbar = () => {
     { label: "Medicine Safety", path: "/medicine-safety" },
     { label: "Symptom Awareness", path: "/symptom-awareness" },
     { label: "Nutrition", path: "/nutrition" },
+    { label: "AI Assistant", path: "/chat" },
     { label: "Trust & Ethics", path: "/trust-ethics" },
   ];
 

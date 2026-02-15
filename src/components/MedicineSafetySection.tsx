@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Camera, Utensils, ShieldCheck, ChevronDown, Sparkles, Bell } from "lucide-react";
 import medicineScan from "@/assets/medicine-scan.png";
 import VedicGuidance from "./VedicGuidance";
@@ -49,6 +50,21 @@ const fadeInUp = {
 
 const MedicineSafetySection = () => {
   const [expanded, setExpanded] = useState<number | null>(null);
+  const navigate = useNavigate();
+
+  const handleFeatureClick = (index: number, featureTitle: string) => {
+    // Special handling for Food-Medicine Compatibility
+    if (featureTitle === "Food–Medicine Compatibility") {
+      navigate("/chat", {
+        state: {
+          prefill: "Can you tell me about food-medicine interactions? What foods should I avoid with common medications?"
+        }
+      });
+    } else {
+      // Normal expand/collapse behavior for other features
+      setExpanded(expanded === index ? null : index);
+    }
+  };
 
   return (
     <section id="medicine" className="py-24 bg-card">
@@ -110,24 +126,33 @@ const MedicineSafetySection = () => {
                   initial="hidden"
                   whileInView="visible"
                   viewport={{ once: true }}
-                  className="rounded-2xl border border-border bg-background p-5 hover:shadow-md transition-shadow duration-300"
+                  className={`rounded-2xl border border-border bg-background p-5 transition-all duration-300 ${
+                    feature.title === "Food–Medicine Compatibility" 
+                      ? "hover:shadow-lg hover:border-primary/50 hover:scale-[1.02] cursor-pointer" 
+                      : "hover:shadow-md"
+                  }`}
                 >
                   <div 
                     className="flex items-center gap-4 cursor-pointer"
-                    onClick={() => setExpanded(expanded === i ? null : i)}
+                    onClick={() => handleFeatureClick(i, feature.title)}
                   >
                     <div className={`w-12 h-12 rounded-xl ${feature.color} flex items-center justify-center shrink-0`}>
                       <feature.icon className="w-6 h-6" />
                     </div>
                     <div className="flex-1">
                       <h3 className="font-heading font-bold text-foreground">{feature.title}</h3>
+                      {feature.title === "Food–Medicine Compatibility" && (
+                        <p className="text-xs text-primary mt-0.5">Click to ask AI Assistant →</p>
+                      )}
                     </div>
-                    <ChevronDown
-                      className={`w-5 h-5 text-muted-foreground transition-transform duration-300 ${expanded === i ? "rotate-180" : ""}`}
-                    />
+                    {feature.title !== "Food–Medicine Compatibility" && (
+                      <ChevronDown
+                        className={`w-5 h-5 text-muted-foreground transition-transform duration-300 ${expanded === i ? "rotate-180" : ""}`}
+                      />
+                    )}
                   </div>
                   
-                  {feature.type === "text" ? (
+                  {feature.type === "text" && feature.title !== "Food–Medicine Compatibility" ? (
                     <motion.div
                       initial={false}
                       animate={{ height: expanded === i ? "auto" : 0, opacity: expanded === i ? 1 : 0 }}

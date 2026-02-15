@@ -11,6 +11,7 @@ import MedicineSafety from "./pages/MedicineSafety";
 import SymptomAwareness from "./pages/SymptomAwareness";
 import Nutrition from "./pages/Nutrition";
 import TrustEthics from "./pages/TrustEthics";
+import Chat from "./pages/Chat";
 import RequireAuth from "@/components/RequireAuth";
 import RootRedirect from "@/components/RootRedirect";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -74,6 +75,14 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <TrustEthics />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/chat"
+                element={
+                  <RequireAuth>
+                    <Chat />
                   </RequireAuth>
                 }
               />

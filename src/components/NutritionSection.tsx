@@ -1,4 +1,7 @@
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { MessageSquare } from "lucide-react";
 
 const foods = [
   {
@@ -32,6 +35,8 @@ const foods = [
 ];
 
 const NutritionSection = () => {
+  const navigate = useNavigate();
+
   return (
     <section id="nutrition" className="py-24 bg-card">
       <div className="container mx-auto px-6">
@@ -83,6 +88,30 @@ const NutritionSection = () => {
             </motion.div>
           ))}
         </div>
+
+        {/* Food-Medicine Compatibility Button */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+          className="flex justify-center mt-12"
+        >
+          <Button
+            onClick={() =>
+              navigate('/chat', {
+                state: {
+                  prefill: 'Can you tell me about food-medicine interactions? What foods should I avoid with common medications?'
+                }
+              })
+            }
+            size="lg"
+            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+          >
+            <MessageSquare className="h-5 w-5" />
+            Ask About Food-Medicine Compatibility
+          </Button>
+        </motion.div>
       </div>
     </section>
   );
